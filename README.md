@@ -29,8 +29,9 @@ Abre http://127.0.0.1:8000. Cuenta de prueba: `ana` / `ana123`.
 La sección **Laboratorio** de la aplicación incluye cinco retos: código fuente, control de
 acceso, XSS basado en DOM, XSS almacenado e IDOR. Aquí no se publican las soluciones.
 
-> Nota: los dos retos de XSS (03 y 04) quedaron corregidos en el reto opcional (`esc()` en búsqueda,
-> playlists y biografía), por lo que ya no son explotables en esta versión. Siguen siéndolo el resto.
+> Versiones: `index.html` (raíz) es la versión **corregida** frente a XSS (reto opcional).
+> La versión **vulnerable con los cinco retos** está en `lab-vulnerable/`
+> (https://javier132006.github.io/Web-Ciber/lab-vulnerable/). Practica en local con ella.
 
 ## Pruebas
 
@@ -46,7 +47,9 @@ necesita contenedor. Si se quisiera con Docker bastaría una imagen de nginx que
 
 | Fichero | Descripción |
 |---|---|
-| `index.html` | Aplicación completa |
+| `index.html` | Aplicación con el XSS corregido |
+| `lab-vulnerable/index.html` | Versión original con los cinco retos |
 | `tests/xss.test.html` | Prueba de regresión contra XSS |
 | `.gitignore` | Evita subir `.env`, bases de datos y registros |
 | `README.md` | Este documento |
+| `LICENSE` | Licencia MIT |
