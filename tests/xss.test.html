@@ -1,0 +1,32 @@
+<!doctype html><meta charset="utf-8"><title>Pruebas XSS - Ondas</title>
+<style>body{font:14px monospace;padding:20px;background:#0b1020;color:#e6edf7}.ok{color:#7CFF9B}.ko{color:#ff7d8b}</style>
+<h2>Pruebas de escapado (reto opcional)</h2><pre id="out"></pre>
+<iframe id="app" style="width:1000px;height:500px;border:0;visibility:hidden"></iframe>
+<script>
+// Prueba de regresión: ninguna entrada no confiable debe crear elementos HTML en la página.
+const out = document.getElementById('out'), app = document.getElementById('app');
+const log = (ok, msg) => out.innerHTML += `<span class="${ok ? 'ok' : 'ko'}">${ok ? 'PASS' : 'FAIL'}</span> ${msg}\n`;
+const wait = ms => new Promise(r => setTimeout(r, ms));
+let n = 0; // la consulta única fuerza una recarga completa aunque solo cambie el hash
+const load = url => new Promise(r => { app.onload = () => r(); app.src = url.replace('index.html', 'index.html?run=' + (++n)); });
+(async () => {
+  localStorage.clear();
+  localStorage.setItem('ondas_session', JSON.stringify({ id: 2, user: 'ana', role: 'user' }));
+  const payload = '<img src=x id=pwn onerror=window.top.__xss=1>';
+  // 1) XSS basado en DOM por la búsqueda
+  await load('../index.html#q=' + encodeURIComponent(payload)); await wait(400);
+  log(!app.contentDocument.getElementById('pwn'), 'La búsqueda no inyecta HTML (DOM XSS)');
+  log(app.contentDocument.querySelector('.result-label strong')?.textContent === payload, 'La búsqueda muestra el texto literal');
+  // 2) XSS almacenado en el nombre de playlist
+  localStorage.setItem('ondas_playlists', JSON.stringify([{ name: payload, t: [] }]));
+  await load('../index.html#biblioteca'); await wait(400);
+  log(!app.contentDocument.getElementById('pwn'), 'Biblioteca no inyecta HTML (XSS almacenado)');
+  // 3) XSS en biografía
+  localStorage.setItem('ondas_bio_2', payload);
+  await load('../index.html#perfil=2'); await wait(400);
+  log(!app.contentDocument.getElementById('pwn'), 'Perfil no inyecta HTML (bio)');
+  log(!window.__xss, 'No se ha ejecutado ningún manejador onerror');
+  localStorage.clear();
+  document.title = out.textContent.includes('FAIL') ? 'FAIL' : 'ALL PASS';
+})();
+</script>

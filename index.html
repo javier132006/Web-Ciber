@@ -579,6 +579,8 @@
     ];
 
     const $ = selector => document.querySelector(selector);
+    // Mitigación (reto opcional): escapa texto no confiable antes de insertarlo como HTML.
+    const esc = v => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const fmt = seconds => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
     const readJSON = (key, fallback) => { try { return JSON.parse(store.getItem(key) || JSON.stringify(fallback)); } catch (e) { return fallback; } };
     const getSession = () => { try { return JSON.parse(store.getItem('ondas_session')); } catch (e) { return null; } };
@@ -961,11 +963,11 @@
         const matchesGenre = activeGenre === 'Todos' || track[3] === activeGenre;
         return matchesQuery && matchesGenre;
       });
-      // VULNERABLE: el término se inserta como HTML sin escapar (XSS basado en DOM).
+      // Corregido: el término se escapa con esc() antes de insertarlo.
       shell('buscar', `<div class="eyebrow">Encuentra tu próximo favorito</div><h1 class="page-title">Buscar música</h1><p class="page-subtitle">Busca por canción, artista, álbum o estilo. Siempre hay algo nuevo que descubrir.</p>
         <form id="search-form" class="search-box"><span>${icon('search')}</span><input class="field" id="search-query" placeholder="¿Qué te apetece escuchar?" value=""><button class="btn btn-primary search-submit" type="submit">Buscar</button></form>
         <div class="filter-strip" aria-label="Filtrar por género">${genres.map(genre => `<button class="filter-chip ${activeGenre === genre ? 'active' : ''}" data-genre="${genre}">${genre}</button>`).join('')}</div>
-        ${query || activeGenre !== 'Todos' ? `<p class="result-label">${hits.length} resultado(s) ${query ? `para: <strong>${query}</strong>` : ''}</p>` : `<section class="section"><div class="section-head"><div><h2>Selección editorial</h2><p>Una mezcla de sonidos para empezar a explorar.</p></div></div><div class="music-grid">${[0,3,5,8].map(musicCard).join('')}</div></section>`}
+        ${query || activeGenre !== 'Todos' ? `<p class="result-label">${hits.length} resultado(s) ${query ? `para: <strong>${esc(query)}</strong>` : ''}</p>` : `<section class="section"><div class="section-head"><div><h2>Selección editorial</h2><p>Una mezcla de sonidos para empezar a explorar.</p></div></div><div class="music-grid">${[0,3,5,8].map(musicCard).join('')}</div></section>`}
         ${hits.length ? `<div class="track-list">${hits.map((index, n) => trackRow(index, String(n + 1).padStart(2, '0'))).join('')}</div>` : `<div class="empty-state"><div class="empty-icon">⌕</div><h3>No hemos encontrado nada</h3><p>Prueba con otro nombre o cambia el género seleccionado.</p><button class="btn btn-secondary" id="clear-filters">Limpiar filtros</button></div>`}`);
       $('#search-form').onsubmit = event => { event.preventDefault(); location.hash = '#q=' + encodeURIComponent($('#search-query').value.trim()); };
       $('#search-query').value = query;
@@ -978,7 +980,7 @@
       shell('biblioteca', `<div class="eyebrow">Todo lo que guardas, en un mismo sitio</div><h1 class="page-title">Tu biblioteca</h1><p class="page-subtitle">Tus colecciones personales, listas para cada momento.</p>
         <form id="playlist-form" class="form-row"><input class="field" id="playlist-name" maxlength="50" placeholder="Ponle nombre a una nueva playlist..."><button class="btn btn-primary" type="submit">${icon('plus',16)} Crear playlist</button></form>
         <div class="section-head"><div><h2>Tus playlists</h2><p>${playlists.length} colecciones creadas</p></div></div>
-        <div class="playlist-grid">${playlists.map((list, index) => `<article class="playlist-card"><a href="#playlist=${index}" style="text-decoration:none;display:block"><div class="playlist-art" style="background:${['linear-gradient(135deg,#a9f66d,#2c9b94 58%,#343f83)','linear-gradient(135deg,#f7a66e,#b74d80 58%,#482d75)','linear-gradient(135deg,#84d8e3,#5573bd 58%,#453b87)'][index % 3]}"><span>${list.name}</span></div></a><div class="playlist-meta"><div style="min-width:0"><strong>${list.name}</strong><small>${list.t.length} canciones</small></div><button class="delete-playlist" data-delete="${index}" title="Eliminar playlist" aria-label="Eliminar playlist">${icon('trash',16)}</button></div></article>`).join('') || `<div class="empty-state"><h3>Aún no tienes playlists</h3><p>Crea tu primera colección para organizar tus canciones.</p></div>`}</div>`);
+        <div class="playlist-grid">${playlists.map((list, index) => `<article class="playlist-card"><a href="#playlist=${index}" style="text-decoration:none;display:block"><div class="playlist-art" style="background:${['linear-gradient(135deg,#a9f66d,#2c9b94 58%,#343f83)','linear-gradient(135deg,#f7a66e,#b74d80 58%,#482d75)','linear-gradient(135deg,#84d8e3,#5573bd 58%,#453b87)'][index % 3]}"><span>${esc(list.name)}</span></div></a><div class="playlist-meta"><div style="min-width:0"><strong>${esc(list.name)}</strong><small>${list.t.length} canciones</small></div><button class="delete-playlist" data-delete="${index}" title="Eliminar playlist" aria-label="Eliminar playlist">${icon('trash',16)}</button></div></article>`).join('') || `<div class="empty-state"><h3>Aún no tienes playlists</h3><p>Crea tu primera colección para organizar tus canciones.</p></div>`}</div>`);
       $('#playlist-form').onsubmit = event => {
         event.preventDefault();
         const name = $('#playlist-name').value.trim();
@@ -1001,7 +1003,7 @@
       const list = lists[index];
       if (!list) return viewLibrary();
       const validTracks = list.t.filter(trackIndex => Number.isInteger(trackIndex) && TRACKS[trackIndex]);
-      shell('biblioteca', `<div class="eyebrow">Tu colección personal</div><h1 class="page-title">${list.name}</h1><p class="page-subtitle">${validTracks.length} canciones · Una playlist hecha a tu manera.</p>
+      shell('biblioteca', `<div class="eyebrow">Tu colección personal</div><h1 class="page-title">${esc(list.name)}</h1><p class="page-subtitle">${validTracks.length} canciones · Una playlist hecha a tu manera.</p>
         <div class="playlist-actions"><button class="btn btn-primary" id="play-list">${icon('play',15)} Reproducir playlist</button><button class="btn btn-secondary" id="shuffle-list">${icon('shuffle',15)} Mezclar</button><a class="btn btn-secondary" href="#biblioteca">Volver a biblioteca</a></div>
         <form class="add-song-row" id="add-song-form"><select class="field" id="song-to-add" aria-label="Seleccionar canción">${TRACKS.map((track, trackIndex) => `<option value="${trackIndex}">${track[0]} — ${track[1]}</option>`).join('')}</select><button class="btn btn-primary" type="submit">${icon('plus',15)} Añadir canción</button></form>
         <section class="section"><div class="section-head"><div><h2>Canciones de la playlist</h2><p>Puedes quitar temas cuando quieras.</p></div></div><div class="track-list">${validTracks.map((trackIndex, n) => trackRow(trackIndex, String(n + 1).padStart(2, '0'), n)).join('') || '<div class="empty-state"><h3>Esta playlist está vacía</h3><p>Añade canciones con el selector de arriba.</p></div>'}</div></section>`);
@@ -1034,7 +1036,7 @@
       shell(`perfil=${getSession().id}`, !account ? `<h1 class="page-title">Perfil</h1><p class="message error">No existe ese usuario.</p>` : `
         <div class="eyebrow">Tu identidad en Ondas</div><h1 class="page-title">Mi perfil</h1><p class="page-subtitle">Gestiona tu información y tus preferencias personales.</p>
         <div class="profile-layout"><section class="panel"><div class="profile-head"><div class="profile-avatar">${account.user.slice(0,1).toUpperCase()}</div><div><h2>${account.user}</h2><p>Miembro de Ondas · Perfil #${account.id}</p></div></div>
-          <div class="profile-field"><label>Biografía</label><div id="profile-bio" style="font-size:13px;color:#d6dfec">${store.getItem('ondas_bio_' + id) || account.bio}</div></div>
+          <div class="profile-field"><label>Biografía</label><div id="profile-bio" style="font-size:13px;color:#d6dfec">${esc(store.getItem('ondas_bio_' + id) || account.bio)}</div></div>
           ${mine ? `<form id="bio-form" class="profile-field"><label for="new-bio">Actualizar biografía</label><div style="display:flex;gap:8px"><input class="field" id="new-bio" placeholder="Cuéntanos algo sobre ti..."><button class="btn btn-primary" type="submit">Guardar</button></div></form>` : ''}
         </section><aside class="panel private-note"><h3>${icon('lock',16)} Notas privadas</h3><p>${account.private}</p><p style="margin-top:13px;color:#7e899b;font-size:10px">Esta información debería estar protegida por controles de acceso del servidor.</p></aside></div>`);
       if (mine) $('#bio-form').onsubmit = event => { event.preventDefault(); store.setItem('ondas_bio_' + id, $('#new-bio').value); viewProfile(id); notify('Tu biografía se ha actualizado.'); };

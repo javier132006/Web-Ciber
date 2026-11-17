@@ -29,6 +29,13 @@ Abre http://127.0.0.1:8000. Cuenta de prueba: `ana` / `ana123`.
 La sección **Laboratorio** de la aplicación incluye cinco retos: código fuente, control de
 acceso, XSS basado en DOM, XSS almacenado e IDOR. Aquí no se publican las soluciones.
 
+> Nota: los dos retos de XSS (03 y 04) quedaron corregidos en el reto opcional (`esc()` en búsqueda,
+> playlists y biografía), por lo que ya no son explotables en esta versión. Siguen siéndolo el resto.
+
+## Pruebas
+
+Abre `tests/xss.test.html` desde el servidor local; el título de la pestaña indica `ALL PASS` o `FAIL`.
+
 ## Despliegue
 
 Se publica con GitHub Pages desde la rama `main`, carpeta raíz. Al ser un sitio estático no
@@ -40,5 +47,6 @@ necesita contenedor. Si se quisiera con Docker bastaría una imagen de nginx que
 | Fichero | Descripción |
 |---|---|
 | `index.html` | Aplicación completa |
+| `tests/xss.test.html` | Prueba de regresión contra XSS |
 | `.gitignore` | Evita subir `.env`, bases de datos y registros |
 | `README.md` | Este documento |
