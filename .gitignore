@@ -1,0 +1,15 @@
+# Secretos y configuración local
+.env
+.env.*
+!.env.example
+
+# Bases de datos y datos locales
+*.db
+*.sqlite3
+data/
+
+# Entornos y basura del sistema
+__pycache__/
+.venv/
+.DS_Store
+*.log
